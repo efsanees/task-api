@@ -7,11 +7,32 @@ app = FastAPI(title="Görev Yönetimi API", version="1.0.0")
 
 tasks: list[dict] = []
 
+# VULNERABLE: Passwords stored in plaintext — never do this in production
+# Fix: use bcrypt/argon2 hashing (e.g. passlib)
+users: list[dict] = [
+    {"username": "admin", "password": "admin123"},
+    {"username": "user1", "password": "pass456"},
+]
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 
 class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
     done: bool = False
+
+
+@app.post("/login")
+def login(credentials: LoginRequest):
+    # VULNERABLE: plaintext comparison — exposes passwords if DB is leaked
+    for user in users:
+        if user["username"] == credentials.username and user["password"] == credentials.password:
+            return {"message": "Giriş başarılı", "username": credentials.username}
+    raise HTTPException(status_code=401, detail="Kullanıcı adı veya şifre hatalı")
 
 
 @app.get("/tasks")
